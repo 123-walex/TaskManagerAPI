@@ -76,11 +76,9 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapScalarApiReference();
-    app.MapOpenApi("/openapi/v1.json");
-}
+app.MapScalarApiReference();
+app.MapOpenApi("/openapi/v1.json");
+app.MapGet("/", () => Results.Redirect("/scalar"));
 
 app.UseStaticFiles();
 
