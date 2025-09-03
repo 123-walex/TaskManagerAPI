@@ -24,7 +24,7 @@ namespace TaskManagerAPI.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<AuthService_Google> _logger;
         private readonly TaskManagerDbContext _context;
-        private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IPasswordHasher<User> _passwordHasher;
         private readonly ItokenService _tokenService;
         private readonly IConfiguration _configuration;
 

@@ -16,14 +16,14 @@ namespace TaskManagerAPI.Services
     public interface IAuthService
     {
         Task<LoginDTO_Manual_> SignUpManual(LoginDTO_Manual_ manual);
-        Task<ErrorOr<LoginDTO_Manual_>> LoginUser_Manual(LoginDTO_Manual_ man);
+        Task<ErrorOr<AuthResponse>> LoginUser_Manual(LoginDTO_Manual_ man);
     }
     public class AuthService_Manual : IAuthService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<AuthService_Manual> _logger;
         private readonly TaskManagerDbContext _context;
-        private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IPasswordHasher<User> _passwordHasher;
         private readonly ItokenService _tokenService;
 
         public AuthService_Manual
@@ -89,7 +89,7 @@ namespace TaskManagerAPI.Services
             };
             return type2;
         }
-        public async Task<ErrorOr<LoginDTO_Manual_>> LoginUser_Manual(LoginDTO_Manual_ man)
+        public async Task<ErrorOr<AuthResponse>> LoginUser_Manual(LoginDTO_Manual_ man)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             _logger.LogInformation("Login Method Called : {RequestId}", requestId);
@@ -156,10 +156,9 @@ namespace TaskManagerAPI.Services
             {
                 _logger.LogError("An empty DTO was supplied , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound , requestId);
             }
-            return new LoginDTO_Manual_
+            return new AuthResponse
             {
                 Email = man.Email,
-                Password = null,
                 AccessToken = accessToken,
                 RefreshToken = refreshedToken.RefreshToken, 
             };

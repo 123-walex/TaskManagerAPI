@@ -7,11 +7,12 @@ using TaskManagerAPI.Services;
 
 namespace TaskManagerAPI.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class AuthController : Controller
     {
         private readonly IConfiguration _configuration;
         private readonly TaskManagerDbContext _context;
-        private readonly IMapper _mapper;
         private readonly ILogger<AuthController> _logger;
         private readonly IGoogleService _googleService;
         private readonly IAuthService _authService;
@@ -19,7 +20,6 @@ namespace TaskManagerAPI.Controllers
         public AuthController(
                          IConfiguration configuration,
                          TaskManagerDbContext context,
-                         IMapper mapper,
                          ILogger<AuthController> logger,
                          IGoogleService googleService,
                          IAuthService authService
@@ -27,22 +27,30 @@ namespace TaskManagerAPI.Controllers
         {
             _configuration = configuration;
             _context = context;
-            _mapper = mapper;
             _logger = logger;
             _authService = authService;
             _googleService = googleService;
-            _authService = authService;
         }
 
-        [HttpPost("Login_Manual")]
-        public async Task<IActionResult> GoogleLogin([FromBody] LoginDTO_Google_ automatic)
+        [HttpPost("SIgnUp_Manual")]
+        public async Task<IActionResult> ManualSignUp([FromBody] LoginDTO_Manual_ manual)
         {
-            ErrorOr<AuthResponse> result = await _googleService.LoginUser_Google(automatic);
+            var result = await _authService.SignUpManual(manual);
+            return Ok(result);
+        }
+        [HttpPost("Login_Manual")]
+        public async Task<IActionResult> ManualLogin([FromBody] LoginDTO_Manual_ login)
+        {
+            var result = await _authService.LoginUser_Manual(login);
 
-            return result.Match(
-                onValue: authResponse => Ok(authResponse),
-                onError: errors => BadRequest(errors)
-            );
+            return Ok(result);
+        }
+        [HttpPost("Login_Google")]
+        public async Task<IActionResult> GoogleLogin([FromBody] LoginDTO_Google_ google)
+        {
+            var result = await _googleService.LoginUser_Google(google);
+
+            return Ok(result);
         }
     }
 }

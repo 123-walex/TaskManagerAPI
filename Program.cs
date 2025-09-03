@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
@@ -8,10 +9,12 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Formatting.Json;
 using Serilog.AspNetCore;
 using Serilog.Events;
 using Serilog.Sinks.File;
 using TaskManagerAPI.Data;
+using TaskManagerAPI.Entities;
 using TaskManagerAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,10 +27,10 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:HH:mm:ss}{StatusCode}{Level:u3}] {EnvironmentName} {ThreadId} {TraceId} {Message:lj}{NewLine}{Exception}"
     )
     .WriteTo.File(
-        path: "C:\\Users\\Lenovo\\Documents\\c# developement\\TaskManagerAPI\\Logs.txt",
+        formatter: new JsonFormatter(),
+        path: "C:\\Users\\Lenovo\\Documents\\c# developement\\TaskManagerAPI\\Logs\\Logs.json",
         rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        outputTemplate: "[{Timestamp:HH:mm:ss}{StatusCode}{Level:u3}] {EnvironmentName} {ThreadId} {TraceId} {Message:lj}{NewLine}{Exception}"
+        retainedFileCountLimit: 7
     )
     .CreateLogger();
 
@@ -35,7 +38,6 @@ builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<TaskManagerDbContext>(options =>
        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -66,6 +68,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
        }); 
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<ItokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService_Manual>();
 builder.Services.AddScoped<IGoogleService, AuthService_Google>();
