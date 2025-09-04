@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 using TaskManagerAPI.Enums;
 
 namespace TaskManagerAPI.Entities
@@ -17,6 +18,7 @@ namespace TaskManagerAPI.Entities
         public DateTime? DeletedAt { get; set; }
         public DateTime? RestoredAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public RBAC Role { get; set; }
 
         [Required]
         [MaxLength(256)]

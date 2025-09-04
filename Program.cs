@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using Newtonsoft.Json;
 using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.AspNetCore;
@@ -27,7 +28,7 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:HH:mm:ss}{StatusCode}{Level:u3}] {EnvironmentName} {ThreadId} {TraceId} {Message:lj}{NewLine}{Exception}"
     )
     .WriteTo.File(
-        formatter: new JsonFormatter(),
+         new JsonFormatter(renderMessage: true, closingDelimiter: null),
         path: "C:\\Users\\Lenovo\\Documents\\c# developement\\TaskManagerAPI\\Logs\\Logs.json",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7
@@ -70,8 +71,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<ItokenService, TokenService>();
-builder.Services.AddScoped<IAuthService, AuthService_Manual>();
-builder.Services.AddScoped<IGoogleService, AuthService_Google>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
