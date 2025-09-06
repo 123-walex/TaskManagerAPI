@@ -1,8 +1,8 @@
 ﻿
 using System.Diagnostics.Eventing.Reader;
 using Azure.Core;
-using Google.Apis.Auth;
 using ErrorOr;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +11,7 @@ using TaskManagerAPI.Data;
 using TaskManagerAPI.DTO_s;
 using TaskManagerAPI.Entities;
 using TaskManagerAPI.Enums;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace TaskManagerAPI.Services
 {
@@ -21,7 +22,7 @@ namespace TaskManagerAPI.Services
         Task<ErrorOr<List<UserDTO>>> GetAllUsers();
         Task<ErrorOr<UserDTO>> GetUser(Guid UserId);
         Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update);
-        Task<ErrorOr<UserDTO>> PartialUpdate(Guid UserId);
+        Task<ErrorOr<string>> PartialUpdate(TotalUpdateDTO update);
         
     }
     public class AuthService : IAuthService
@@ -330,6 +331,48 @@ namespace TaskManagerAPI.Services
                 return user.Email;
             }
             catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occured while updating the user , requestId : {requestId} .", requestId);
+                return Error.Failure(
+                     code: "User.UpdateFailed",
+                     description: "An unexpected error occurred while updating the user. Please try again later."
+                     );
+            }
+        }
+        public async Task<ErrorOr<string>> PartialUpdate(TotalUpdateDTO update)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            try
+            {
+                var user = await _context.User.FindAsync(update.UserId);
+
+                if (user == null || user.IsDeleted == UserStatus.True)
+                {
+                    _logger.LogError("User is either detleted or null , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
+                    return Error.NotFound(
+                         code: "User.NotFound",
+                         description: $"User with ID {update.UserId} was not found or has been deleted.");
+                }
+                //update either one 
+                if (update.OldEmail != null && update.NewEmail != null)
+                {
+                    user.Email = update.NewEmail;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (update.OldPassword != null && update.NewPassword != null)
+                {
+                    var hashpassword = new PasswordHasher<object>();
+                    string hashedpassword = hashpassword.HashPassword(new object(), update.NewPassword);
+                    user.Password = hashedpassword;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully Updated user , RequesrId : {requestId} .", requestId);
+
+                return user.Email;
+            }
+            catch(Exception ex)
             {
                 _logger.LogError(ex, "An error occured while updating the user , requestId : {requestId} .", requestId);
                 return Error.Failure(
