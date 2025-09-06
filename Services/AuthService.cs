@@ -20,7 +20,7 @@ namespace TaskManagerAPI.Services
         Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic);
         Task<ErrorOr<List<UserDTO>>> GetAllUsers();
         Task<ErrorOr<UserDTO>> GetUser(Guid UserId);
-        Task<ErrorOr<UserDTO>> TotalUpdate(Guid UserId);
+        Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update);
         Task<ErrorOr<UserDTO>> PartialUpdate(Guid UserId);
         
     }
@@ -305,10 +305,38 @@ namespace TaskManagerAPI.Services
                     description: "An unexpected error occurred while retrieving the user.");
             }
         }
-        public async Task<ErrorOr<UserDTO>> TotalUpdate(Guid UserId)
+        //core logic to change the mail and password 
+        public async Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            try
+            {
+                var user = await _context.User.FindAsync(update.UserId);
 
+                if (user == null)
+                {
+                    _logger.LogError("User is either detleted or null , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
+                    return Error.NotFound(
+                         code: "User.NotFound",
+                         description: $"User with ID {update.UserId} was not found or has been deleted.");
+                }
+                user.Email = update.NewEmail;
+                user.Password = update.NewPassword;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully Updated user , RequesrId : {requestId} .", requestId);
+
+                return user.Email;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occured while updating the user , requestId : {requestId} .", requestId);
+                return Error.Failure(
+                     code: "User.UpdateFailed",
+                     description: "An unexpected error occurred while updating the user. Please try again later."
+                     );
+            }
         }
     }
 }

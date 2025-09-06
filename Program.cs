@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,12 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Scalar.AspNetCore;
 using Newtonsoft.Json;
+using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Formatting.Json;
 using Serilog.AspNetCore;
 using Serilog.Events;
+using Serilog.Formatting.Json;
 using Serilog.Sinks.File;
 using TaskManagerAPI.Data;
 using TaskManagerAPI.Entities;
@@ -57,7 +58,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                (
                    Encoding.UTF8.GetBytes(builder.Configuration.GetValue<String>("JwtSettings:AccessToken")!)
                ),
-               ValidateIssuerSigningKey = true
+               ValidateIssuerSigningKey = true,
+               RoleClaimType = ClaimTypes.Role,
+               NameClaimType = ClaimTypes.NameIdentifier 
            };
 
        }).AddCookie()

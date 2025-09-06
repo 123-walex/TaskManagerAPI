@@ -11,5 +11,10 @@ namespace TaskManagerAPI.Data
         }
         //public DbSet<Tasks> Task { get; set; }
         public DbSet<User> User { get; set; }
+
+        internal async Task FindAsync(Guid? userId)
+        {
+            throw new NotImplementedException();
+        }
     }   
 }
