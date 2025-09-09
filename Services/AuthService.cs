@@ -62,9 +62,20 @@ namespace TaskManagerAPI.Services
 
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
-            if (!String.IsNullOrEmpty(manual.Email) && !String.IsNullOrEmpty(manual.Password))
+            if (string.IsNullOrEmpty(manual.Email) || string.IsNullOrEmpty(manual.Password))
             {
-                try
+                return Error.Validation(
+                    code: "User.InvalidInput",
+                    description: "Email and Password are required."
+                );
+            }
+            try
+            {
+                var loginEntity = await _context.User
+                                     .Include(u => u.RefreshTokens)
+                                     .Include(u => u.UserSessions)
+                                     .FirstOrDefaultAsync(l => l.Email == manual.Email);
+                if (loginEntity == null)
                 {
                     //Creating new user 
                     var NewUser = new User
@@ -81,66 +92,59 @@ namespace TaskManagerAPI.Services
                     _context.User.Add(NewUser);
                     await _context.SaveChangesAsync();
                     _logger.LogInformation("User successfully added to the DB : {RequestId}", requestId);
+                    loginEntity = NewUser;
+                }
+                else
+                {
+                    // Verify password for existing user
+                    var answer = _passwordHasher.VerifyHashedPassword(loginEntity, loginEntity.Password, manual.Password);
+                    if (answer != PasswordVerificationResult.Success)
+                    {
+                        _logger.LogError("Invalid password for {Email}, StatusCode: {StatusCode}, RequestId: {RequestId}",
+                                         loginEntity.Email, StatusCodes.Status401Unauthorized, requestId);
 
-                    //Login 
-                    var Loginentity = await _context.User.FirstOrDefaultAsync(l => l.Email == manual.Email);
-
-                    if (Loginentity == null || Loginentity.IsDeleted == UserStatus.True)
-                    {
-                        _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
-                        return Error.NotFound(
-                             code: "User.NotFound",
-                             description: $"User with email {NewUser.Email} was not found."
-                             );
-                    }
-                    else
-                    {
-                        _logger.LogInformation("The user {Email} has been found : {requestId}", NewUser.Email, requestId);
-                    }
-                    var result = _passwordHasher.VerifyHashedPassword(Loginentity, Loginentity.Password, NewUser.Password);
-                    if (result == PasswordVerificationResult.Success)
-                    {
-                        _logger.LogInformation("Password for {Email} Successfully verified : {requestId} ", NewUser.Email, requestId);
-                    }
-                    else
-                    {
-                        _logger.LogError("Wrong Password !! , StatusCode : {StatusCode} : {requestId} ", StatusCodes.Status401Unauthorized, requestId);
                         return Error.Unauthorized(
                             code: "User.InvalidPassword",
-                            description: "Invalid password supplied.");
+                            description: "Invalid password supplied."
+                        );
                     }
 
-                    accessToken = _tokenService.CreateAccessToken(Loginentity);
-                    refreshedToken = _tokenService.CreateRefreshToken(ipAddress);
-
-                    var session = new UserSessions
-                    {
-                        UserId = Loginentity.UserId,
-                        LoggedInAt = DateTime.UtcNow,
-                        AccessSessionToken = accessToken,
-                        user = Loginentity
-                    };
-
-                    Loginentity.RefreshTokens.Add(refreshedToken);
-                    Loginentity.UserSessions.Add(session);
-
-                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Password verified for {Email}, RequestId: {RequestId}", loginEntity.Email, requestId);
                 }
-                catch (Exception ex)
+                // Generate tokens
+                accessToken = _tokenService.CreateAccessToken(loginEntity);
+                refreshedToken = _tokenService.CreateRefreshToken(ipAddress);
+
+                var session = new UserSessions
                 {
-                    _logger.LogError(ex, "Error Processing Login , StatusCode : {StatusCode} , requestId {requestId} .", StatusCodes.Status404NotFound, requestId);
-                }
+                    UserId = loginEntity.UserId,
+                    LoggedInAt = DateTime.UtcNow,
+                    AccessSessionToken = accessToken,
+                    user = loginEntity
+                };
+
+                loginEntity.RefreshTokens.Add(refreshedToken);
+                loginEntity.UserSessions.Add(session);
+
+                await _context.SaveChangesAsync();
+                return new AuthResponse
+                {
+                    Email = loginEntity.Email,
+                    AccessToken = accessToken,
+                    RefreshToken = refreshedToken.RefreshToken,
+                };
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogError("An empty DTO was supplied , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
+
+                _logger.LogError(ex, "Error processing login, StatusCode: {StatusCode}, RequestId: {RequestId}",
+                                 StatusCodes.Status500InternalServerError, requestId);
+
+                return Error.Failure(
+                    code: "User.LoginFailed",
+                    description: "An unexpected error occurred while logging in."
+                );
             }
-            return new AuthResponse
-            {
-                Email = manual.Email,
-                AccessToken = accessToken,
-                RefreshToken = refreshedToken.RefreshToken,
-            };
         }
      public async Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic)
         {

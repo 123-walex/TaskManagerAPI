@@ -9,6 +9,10 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
+using NSwag;
+using NSwag.Generation.Processors.Security;
+using NSwag.AspNetCore;
+
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.AspNetCore;
@@ -38,12 +42,16 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+builder.Services.AddDbContext<TaskManagerDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+       //the nextline is to split long queries so efcore can run with sql faster 
+       b => b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+    )
+);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-
-builder.Services.AddDbContext<TaskManagerDbContext>(options =>
-       options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
        .AddJwtBearer(options =>
        {
@@ -69,7 +77,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
         options.CallbackPath = "/signin-google";
-       }); 
+       });
+
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<PasswordHasher<User>>();
@@ -81,7 +90,6 @@ var app = builder.Build();
 
 app.MapScalarApiReference();
 app.MapOpenApi("/openapi/v1.json");
-app.MapGet("/", () => Results.Redirect("/scalar"));
 
 app.UseStaticFiles();
 
