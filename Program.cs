@@ -64,7 +64,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                ValidateLifetime = true,
                IssuerSigningKey = new SymmetricSecurityKey
                (
-                   Encoding.UTF8.GetBytes(builder.Configuration.GetValue<String>("JwtSettings:AccessToken")!)
+                   Encoding.UTF8.GetBytes(builder.Configuration.GetValue<String>("JwtSettings:Key")!)
                ),
                ValidateIssuerSigningKey = true,
                RoleClaimType = ClaimTypes.Role,

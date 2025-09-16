@@ -12,8 +12,8 @@ using TaskManagerAPI.Data;
 namespace TaskManagerAPI.Migrations
 {
     [DbContext(typeof(TaskManagerDbContext))]
-    [Migration("20250906190509_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250915223756_InitalCreate")]
+    partial class InitalCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -133,6 +133,9 @@ namespace TaskManagerAPI.Migrations
                     b.Property<DateTime?>("LoggedOutAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("NoOfSessions")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -140,7 +143,7 @@ namespace TaskManagerAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions");
+                    b.ToTable("Session");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>

@@ -2,7 +2,7 @@
 {
     public enum UserStatus
     {
-        True,
-        False,
+        False = 0 ,
+        True = 1,
     }
 }

@@ -1,9 +1,12 @@
-﻿namespace TaskManagerAPI.DTO_s
+﻿using TaskManagerAPI.Enums;
+
+namespace TaskManagerAPI.DTO_s
 {
     public class AuthResponse
     {
         public required string Email { get; set; }
         public required string AccessToken { get; set; }
         public required string RefreshToken { get; set; }
+        public RBAC Role { get; set; }
     }
 }

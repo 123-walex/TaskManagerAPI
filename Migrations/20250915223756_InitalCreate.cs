@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace TaskManagerAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitalCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -60,7 +60,7 @@ namespace TaskManagerAPI.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserSessions",
+                name: "Session",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -68,13 +68,14 @@ namespace TaskManagerAPI.Migrations
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     LoggedInAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LoggedOutAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AccessSessionToken = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    AccessSessionToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NoOfSessions = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserSessions", x => x.Id);
+                    table.PrimaryKey("PK_Session", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserSessions_User_UserId",
+                        name: "FK_Session_User_UserId",
                         column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "UserId",
@@ -87,8 +88,8 @@ namespace TaskManagerAPI.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserSessions_UserId",
-                table: "UserSessions",
+                name: "IX_Session_UserId",
+                table: "Session",
                 column: "UserId");
         }
 
@@ -99,7 +100,7 @@ namespace TaskManagerAPI.Migrations
                 name: "RefreshTokens");
 
             migrationBuilder.DropTable(
-                name: "UserSessions");
+                name: "Session");
 
             migrationBuilder.DropTable(
                 name: "User");

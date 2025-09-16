@@ -19,11 +19,11 @@ namespace TaskManagerAPI.Services
     {
         Task<ErrorOr<AuthResponse>> LoginUser_Manual(LoginDTO_Manual_ manual);
         Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic);
+        Task<ErrorOr<bool>> LogoutUser(AuthResponse response);
         Task<ErrorOr<List<UserDTO>>> GetAllUsers();
-        Task<ErrorOr<UserDTO>> GetUser(Guid UserId);
+        Task<ErrorOr<UserDTO>> GetUser(Guid UserId); 
         Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update);
         Task<ErrorOr<string>> PartialUpdate(TotalUpdateDTO update);
-        
     }
     public class AuthService : IAuthService
     {
@@ -87,7 +87,7 @@ namespace TaskManagerAPI.Services
                     };
                     NewUser.Password = _passwordHasher.HashPassword(NewUser, manual.Password);
                     NewUser.AuthType = UserType.manual;
-                    NewUser.Role = RBAC.User;
+                    NewUser.Role = manual.Role;
 
                     _context.User.Add(NewUser);
                     await _context.SaveChangesAsync();
@@ -132,6 +132,7 @@ namespace TaskManagerAPI.Services
                     Email = loginEntity.Email,
                     AccessToken = accessToken,
                     RefreshToken = refreshedToken.RefreshToken,
+                    Role = manual.Role
                 };
             }
             catch (Exception ex)
@@ -179,6 +180,7 @@ namespace TaskManagerAPI.Services
                     var googleId = Payload.Subject;
                     var pictureurl = Payload.Picture;
                     var username = Payload.Name;
+                    var Role = automatic.Role;
 
                     var loginentity = await _context.User
                          .Include(u => u.RefreshTokens)
@@ -208,7 +210,7 @@ namespace TaskManagerAPI.Services
                             CreatedAt = DateTime.UtcNow,
                             AuthType = UserType.automatic,
                             IsDeleted = UserStatus.False,
-                            Role = RBAC.User
+                            Role = automatic.Role
                         };
                         await _context.User.AddAsync(user);
                         await _context.SaveChangesAsync();
@@ -247,14 +249,73 @@ namespace TaskManagerAPI.Services
                 Email = Payload?.Email,
                 AccessToken = accesstoken,
                 RefreshToken = refreshtoken.RefreshToken,
+                Role = automatic.Role
             };
+        }
+        public async Task<ErrorOr<bool>> LogoutUser(AuthResponse response)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+            
+            if (!String.IsNullOrEmpty(response.RefreshToken) && !String.IsNullOrEmpty(response.Email))
+            {
+                try
+                {
+                    var Users = await _context.User
+                        .FirstOrDefaultAsync(u => u.Email == response.Email);
+                    var Session = await _context.Session
+                        .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+                    var Token = await _context.RefreshTokens
+                        .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+
+                    if (Users == null && Users.IsDeleted == UserStatus.True)
+                    {
+                        _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
+                        return Error.NotFound(
+                             code: "User.NotFound",
+                             description: $"User with email {response.Email} was not found on the db."
+                             );
+                    }
+
+                    Session.LoggedOutAt = DateTime.UtcNow;
+                    Session.NoOfSessions += 1;
+                    Token.RevokedAt = DateTime.UtcNow;
+                    Token.ReplacedByToken = null;
+                    Token.RevokedByIp = ipAddress;
+                  
+                    _logger.LogInformation("Successfully revoked Refreshtoken , RequestId : {requestId} ", requestId);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(" Successfully Logged User Out , RequestId : {requestId} .",requestId);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during Logout , RequesrId : {requestId} ", requestId);
+                    return Error.Failure(
+                           code: "User.NotFound",
+                           description: $"User with email {response.Email} was not found on the db."
+                           );
+                }
+            }
+            else
+            {
+                _logger.LogError("Empty DTO recieved , StatusCode : {StatusCode} , RequestId : {requestId} .", StatusCodes.Status400BadRequest, requestId);
+                return Error.Validation(
+                         code: "Logout.InvalidRequest",
+                         description: "Email and refresh token must be provided.");
+            }
         }
         public async Task<ErrorOr<List<UserDTO>>> GetAllUsers()
         {
             try
             {
+                var allUsers = await _context.User.ToListAsync();
+                _logger.LogInformation("Total users in DB: {Count}", allUsers.Count);
+
+
                 var users = await _context.User
-                    .Where(u => u.IsDeleted != UserStatus.True)
+                    .Where(u => u.IsDeleted == UserStatus.False)
                     .Select(u => new UserDTO
                         {
                           UserId = u.UserId,

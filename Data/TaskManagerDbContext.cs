@@ -11,6 +11,7 @@ namespace TaskManagerAPI.Data
         }
         //public DbSet<Tasks> Task { get; set; }
         public DbSet<User> User { get; set; }
-
+        public DbSet<UserSessions> Session { get; set; }
+        public DbSet<RefreshTokens> RefreshTokens { get; set; }
     }   
 }

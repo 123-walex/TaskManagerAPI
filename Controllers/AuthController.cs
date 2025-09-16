@@ -35,7 +35,7 @@ namespace TaskManagerAPI.Controllers
             _authService = authService;
         }
         [AllowAnonymous]
-        [HttpPost("SIgnUp_Manual")]
+        [HttpPost("Login_Manual")]
         public async Task<IActionResult> ManualSignUp([FromBody] LoginDTO_Manual_ manual)
         {
             var result = await _authService.LoginUser_Manual(manual);
@@ -46,6 +46,13 @@ namespace TaskManagerAPI.Controllers
         public async Task<IActionResult> GoogleLogin([FromBody] LoginDTO_Google_ google)
         {
             var result = await _authService.LoginUser_Google(google);
+            return Ok(result);
+        }
+        [Authorize(Roles = "User , Admin")]
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout([FromBody] AuthResponse response)
+        {
+            var result = await _authService.LogoutUser(response);
             return Ok(result);
         }
         [Authorize(Roles = "Admin")]
@@ -117,6 +124,11 @@ namespace TaskManagerAPI.Controllers
                 user = await _context.User.FirstOrDefaultAsync(u => u.Email == update.OldEmail);
                 _logger.LogInformation("The email can be used as pk");
             }
+            if (user == null)
+            {
+                _logger.LogWarning("No user found for RequestId {requestId}", requestId);
+                return NotFound("User not found.");
+            }
             update.UserId = user.UserId;
             var result = await _authService.PartialUpdate(update);
 
@@ -173,9 +185,9 @@ namespace TaskManagerAPI.Controllers
         }
         [Authorize(Roles = "Admin")]
         [HttpPatch("Restore/{UserId}")]
-        public async Task<IActionResult> Restore(Guid id)
+        public async Task<IActionResult> Restore([FromRoute] Guid UserId)
         {
-            var user = await _context.User.FindAsync(id);
+            var user = await _context.User.FindAsync(UserId);
 
             if (user == null)
                 return NotFound(new { Message = "User not found" });

@@ -130,6 +130,9 @@ namespace TaskManagerAPI.Migrations
                     b.Property<DateTime?>("LoggedOutAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("NoOfSessions")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -137,7 +140,7 @@ namespace TaskManagerAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions");
+                    b.ToTable("Session");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>

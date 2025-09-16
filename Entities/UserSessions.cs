@@ -10,5 +10,6 @@ namespace TaskManagerAPI.Entities
         public DateTime? LoggedInAt { get; set; }
         public DateTime? LoggedOutAt { get; set; }
         public string? AccessSessionToken { get; set; }
+        public int NoOfSessions { get; set; }
     }
 }
