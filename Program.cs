@@ -1,5 +1,7 @@
-using System.Security.Claims;
-using System.Text;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -10,18 +12,20 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using NSwag;
-using NSwag.Generation.Processors.Security;
 using NSwag.AspNetCore;
-
+using NSwag.Generation.Processors.Security;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.AspNetCore;
 using Serilog.Events;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File;
+using System.Security.Claims;
+using System.Text;
 using TaskManagerAPI.Data;
 using TaskManagerAPI.Entities;
 using TaskManagerAPI.Services;
+using TaskManagerAPI.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,8 +53,23 @@ builder.Services.AddDbContext<TaskManagerDbContext>(options =>
        b => b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
     )
 );
+builder.Services.AddHangfire(config =>
+    config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
+        new SqlServerStorageOptions
+        {
+            SchemaName = "Hangfire" // optional schema
+        })
+);
+builder.Services.AddHangfireServer();
+
 
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+
+// Automatically register all validators in the assembly
+builder.Services.AddValidatorsFromAssemblyContaining<ManualLoginValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
        .AddJwtBearer(options =>

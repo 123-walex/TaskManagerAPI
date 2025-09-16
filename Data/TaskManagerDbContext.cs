@@ -9,7 +9,7 @@ namespace TaskManagerAPI.Data
             : base(options)
         {
         }
-        //public DbSet<Tasks> Task { get; set; }
+        public DbSet<Entities.Task> Task { get; set; }
         public DbSet<User> User { get; set; }
         public DbSet<UserSessions> Session { get; set; }
         public DbSet<RefreshTokens> RefreshTokens { get; set; }

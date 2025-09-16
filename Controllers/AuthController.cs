@@ -11,6 +11,7 @@ using TaskManagerAPI.Entities;
 using TaskManagerAPI.Enums;
 using TaskManagerAPI.Services;
 // remember to use the py visualizaion library for your tasks
+// add an ml model to predict task completion time based on past data
 namespace TaskManagerAPI.Controllers
 {
     [ApiController]
@@ -76,11 +77,6 @@ namespace TaskManagerAPI.Controllers
         {
             var requestId = HttpContext.TraceIdentifier;
            
-            if(update == null)
-            {
-                _logger.LogError("An empty DTO was recieved , RequestId : {requestId} ", requestId);
-                return BadRequest();
-            }
             var user = await _context.User.FirstOrDefaultAsync(u => u.Email == update.OldEmail);
             if(user == null)
             {
@@ -103,11 +99,6 @@ namespace TaskManagerAPI.Controllers
             var requestId = HttpContext.TraceIdentifier;
             User? user = null;
 
-            if (update == null)
-            {
-                _logger.LogError("An empty DTO was recieved , RequestId : {requestId} ", requestId);
-                return BadRequest();
-            }
             var hashpassword = new PasswordHasher<object>();
             string hashedpassword = hashpassword.HashPassword(new object(), update.OldPassword);
 

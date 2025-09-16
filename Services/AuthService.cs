@@ -62,13 +62,6 @@ namespace TaskManagerAPI.Services
 
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
-            if (string.IsNullOrEmpty(manual.Email) || string.IsNullOrEmpty(manual.Password))
-            {
-                return Error.Validation(
-                    code: "User.InvalidInput",
-                    description: "Email and Password are required."
-                );
-            }
             try
             {
                 var loginEntity = await _context.User
@@ -157,8 +150,6 @@ namespace TaskManagerAPI.Services
 
             GoogleJsonWebSignature.Payload Payload = null;
 
-            if (!string.IsNullOrEmpty(automatic.IDToken))
-            {
                 try
                 {
                     Payload = await GoogleJsonWebSignature.ValidateAsync(automatic.IDToken,
@@ -238,12 +229,6 @@ namespace TaskManagerAPI.Services
                     _logger.LogError(ex, "Error Processing Login , StatusCode : {StatusCode} , requestId {requestId} .", StatusCodes.Status404NotFound, requestId);
                     return Error.Failure("GoogleAuth.Failed", "Something went wrong during Google authentication.");
                 }
-            }
-            else
-            {
-                _logger.LogError("Error Processing Login , StatusCode : {StatusCode} , requestId {requestId} .", StatusCodes.Status404NotFound, requestId);
-                return Error.Failure("GoogleAuth.Failed", "Something went wrong during Google authentication.");
-            }
             return new AuthResponse
             {
                 Email = Payload?.Email,
@@ -257,8 +242,6 @@ namespace TaskManagerAPI.Services
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
             
-            if (!String.IsNullOrEmpty(response.RefreshToken) && !String.IsNullOrEmpty(response.Email))
-            {
                 try
                 {
                     var Users = await _context.User
@@ -298,14 +281,6 @@ namespace TaskManagerAPI.Services
                            );
                 }
             }
-            else
-            {
-                _logger.LogError("Empty DTO recieved , StatusCode : {StatusCode} , RequestId : {requestId} .", StatusCodes.Status400BadRequest, requestId);
-                return Error.Validation(
-                         code: "Logout.InvalidRequest",
-                         description: "Email and refresh token must be provided.");
-            }
-        }
         public async Task<ErrorOr<List<UserDTO>>> GetAllUsers()
         {
             try
