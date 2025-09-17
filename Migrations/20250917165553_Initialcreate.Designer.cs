@@ -12,8 +12,8 @@ using TaskManagerAPI.Data;
 namespace TaskManagerAPI.Migrations
 {
     [DbContext(typeof(TaskManagerDbContext))]
-    [Migration("20250915223756_InitalCreate")]
-    partial class InitalCreate
+    [Migration("20250917165553_Initialcreate")]
+    partial class Initialcreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,50 @@ namespace TaskManagerAPI.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("TaskManagerAPI.Entities.MyTask", b =>
+                {
+                    b.Property<Guid>("MyTaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("DueTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("MyTaskId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Task");
+                });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>
                 {
@@ -144,6 +188,17 @@ namespace TaskManagerAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Session");
+                });
+
+            modelBuilder.Entity("TaskManagerAPI.Entities.MyTask", b =>
+                {
+                    b.HasOne("TaskManagerAPI.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>

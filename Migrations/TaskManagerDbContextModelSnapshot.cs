@@ -22,6 +22,50 @@ namespace TaskManagerAPI.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("TaskManagerAPI.Entities.MyTask", b =>
+                {
+                    b.Property<Guid>("MyTaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("DueTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("MyTaskId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Task");
+                });
+
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>
                 {
                     b.Property<int>("Id")
@@ -141,6 +185,17 @@ namespace TaskManagerAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Session");
+                });
+
+            modelBuilder.Entity("TaskManagerAPI.Entities.MyTask", b =>
+                {
+                    b.HasOne("TaskManagerAPI.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>

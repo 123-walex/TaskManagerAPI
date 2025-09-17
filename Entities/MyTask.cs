@@ -1,14 +1,15 @@
 ﻿using System.Reflection.PortableExecutable;
+using TaskManagerAPI.Enums;
 
 namespace TaskManagerAPI.Entities
 {
-    public class Task
+    public class MyTask
     {
-        public Guid TaskId { get; set; } = Guid.NewGuid();
+        public Guid MyTaskId { get; set; } = Guid.NewGuid();
         public Guid UserId { get; set; }   // Foreign key to User
-        public string Title { get; set; } = string.Empty;
+        public required string Title { get; set; } 
         public string? Description { get; set; }
-        public TaskStatus State { get; set; }
+        public ProgressStatus State { get; set; }
         public TimeOnly DueTime { get; set; }
         public DateOnly DueDate{ get; set; }
         public DateTime CreatedAt { get; set; } 
