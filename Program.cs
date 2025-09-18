@@ -25,6 +25,7 @@ using System.Text;
 using TaskManagerAPI.Data;
 using TaskManagerAPI.Entities;
 using TaskManagerAPI.Services;
+using TaskManagerAPI.Services.Notifications;
 using TaskManagerAPI.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -103,7 +104,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<ItokenService, TokenService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddTransient<IJobService, JobService>();
+builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddTransient<IReminderService, ReminderService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

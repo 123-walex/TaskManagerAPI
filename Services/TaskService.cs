@@ -8,6 +8,7 @@ using TaskManagerAPI.Data;
 using TaskManagerAPI.DTO_s;
 using TaskManagerAPI.Entities;
 using TaskManagerAPI.Enums;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace TaskManagerAPI.Services
@@ -34,7 +35,7 @@ namespace TaskManagerAPI.Services
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly ItokenService _tokenService;
         private readonly IConfiguration _configuration;
-
+        private readonly IReminderService _reminderservice;
         public TaskService
             (
             IHttpContextAccessor httpContextAccessor,
@@ -42,7 +43,8 @@ namespace TaskManagerAPI.Services
             TaskManagerDbContext context,
             PasswordHasher<User> passwordHasher,
             ItokenService tokenService,
-            IConfiguration configuration
+            IConfiguration configuration, 
+            IReminderService reminderService
             )
 
         {
@@ -52,6 +54,7 @@ namespace TaskManagerAPI.Services
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
             _configuration = configuration;
+            _reminderservice = reminderService;
         }
         private ClaimsPrincipal? CurrentUser => _httpContextAccessor.HttpContext?.User;
 
@@ -61,17 +64,23 @@ namespace TaskManagerAPI.Services
         }
         public string? GetUserId()
         {
-            return CurrentUser?.FindFirstValue("UserId");
+            return CurrentUser?.FindFirstValue(ClaimTypes.NameIdentifier);
         }
         public async Task<TaskResponse> CreateTask(CreateTask create)
         {
             Guid UserId;
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             var userEmail = GetUserEmail();
-            var userId = Guid.TryParse(GetUserId(), out UserId);
+
+            if (!Guid.TryParse(GetUserId(), out Guid userId))
+                throw new UnauthorizedAccessException("User UserId not found in token");
 
             if (userEmail == null)
                 throw new UnauthorizedAccessException("User email not found in token");
+
+            var user = await _context.User.FindAsync(userId);
+            if (user == null)
+                throw new UnauthorizedAccessException("User does not exist in the database");
 
             _logger.LogInformation("Create new task called for {userEmail} ", userEmail);
 
@@ -82,11 +91,16 @@ namespace TaskManagerAPI.Services
                 DueDate = create.DueDate,
                 DueTime = create.Duetime,
                 CreatedAt = DateTime.UtcNow,
-                State = ProgressStatus.Pending
+                State = ProgressStatus.Pending,
+                UserId = userId 
             };
 
             await _context.AddAsync(entity);
             await _context.SaveChangesAsync();
+            var combined = DateTime.SpecifyKind(create.DueDate.ToDateTime(create.Duetime), DateTimeKind.Utc);
+
+            await _reminderservice.ScheduleTaskReminder(entity.MyTaskId, userEmail, combined);
+           
             _logger.LogInformation("Task {Title} created successfully for {userEmail}", create.Title, userEmail);
 
             return new TaskResponse
@@ -116,7 +130,7 @@ namespace TaskManagerAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, "Erroe occurred in retriebeing the task .");
+                _logger.LogError(ex, "Error occurred in retrieving the task .");
                 return null;
             }
         }
@@ -200,7 +214,7 @@ namespace TaskManagerAPI.Services
             if (!tasks.Any())
             {
                 _logger.LogWarning($"No tasks were retrieved , requestId : {requestId}");
-                throw new KeyNotFoundException("No tasks were found");
+                return [];
             }
             return tasks;
         }

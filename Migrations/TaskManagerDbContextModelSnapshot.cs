@@ -46,6 +46,9 @@ namespace TaskManagerAPI.Migrations
                     b.Property<TimeOnly>("DueTime")
                         .HasColumnType("time");
 
+                    b.Property<int>("IsDeleted")
+                        .HasColumnType("int");
+
                     b.Property<int>("State")
                         .HasColumnType("int");
 
@@ -63,7 +66,7 @@ namespace TaskManagerAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Task");
+                    b.ToTable("MyTask");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>

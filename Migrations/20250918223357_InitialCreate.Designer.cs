@@ -12,8 +12,8 @@ using TaskManagerAPI.Data;
 namespace TaskManagerAPI.Migrations
 {
     [DbContext(typeof(TaskManagerDbContext))]
-    [Migration("20250917165553_Initialcreate")]
-    partial class Initialcreate
+    [Migration("20250918223357_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,6 +49,9 @@ namespace TaskManagerAPI.Migrations
                     b.Property<TimeOnly>("DueTime")
                         .HasColumnType("time");
 
+                    b.Property<int>("IsDeleted")
+                        .HasColumnType("int");
+
                     b.Property<int>("State")
                         .HasColumnType("int");
 
@@ -66,7 +69,7 @@ namespace TaskManagerAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Task");
+                    b.ToTable("MyTask");
                 });
 
             modelBuilder.Entity("TaskManagerAPI.Entities.RefreshTokens", b =>
