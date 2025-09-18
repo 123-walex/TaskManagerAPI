@@ -73,7 +73,7 @@ namespace TaskManagerAPI.Controllers
         // use email to get user id 
         [Authorize(Roles = "Admin , User")]
         [HttpPut("TotalUpdate")]
-        public async Task<IActionResult> TotalUpdate(TotalUpdateDTO update)
+        public async Task<IActionResult> TotalUpdate(TotalUpdateUserDTO update)
         {
             var requestId = HttpContext.TraceIdentifier;
            
@@ -94,7 +94,7 @@ namespace TaskManagerAPI.Controllers
         }
         [Authorize(Roles = "User , Admin")]
         [HttpPatch("PartialUpdate")]
-        public async Task<IActionResult> PartialUpdate(TotalUpdateDTO update)
+        public async Task<IActionResult> PartialUpdate(TotalUpdateUserDTO update)
         {
             var requestId = HttpContext.TraceIdentifier;
             User? user = null;

@@ -2,7 +2,7 @@
 
 namespace TaskManagerAPI.DTO_s
 {
-    public class TotalUpdateDTO
+    public class TotalUpdateUserDTO
     {
         public required string OldEmail { get; set; }
         public required string NewEmail { get; set; }

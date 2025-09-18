@@ -22,8 +22,8 @@ namespace TaskManagerAPI.Services
         Task<ErrorOr<bool>> LogoutUser(AuthResponse response);
         Task<ErrorOr<List<UserDTO>>> GetAllUsers();
         Task<ErrorOr<UserDTO>> GetUser(Guid UserId); 
-        Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update);
-        Task<ErrorOr<string>> PartialUpdate(TotalUpdateDTO update);
+        Task<ErrorOr<string>> TotalUpdate(TotalUpdateUserDTO update);
+        Task<ErrorOr<string>> PartialUpdate(TotalUpdateUserDTO update);
     }
     public class AuthService : IAuthService
     {
@@ -347,7 +347,7 @@ namespace TaskManagerAPI.Services
             }
         }
         //core logic to change the mail and password 
-        public async Task<ErrorOr<string>> TotalUpdate(TotalUpdateDTO update)
+        public async Task<ErrorOr<string>> TotalUpdate(TotalUpdateUserDTO update)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             try
@@ -379,7 +379,7 @@ namespace TaskManagerAPI.Services
                      );
             }
         }
-        public async Task<ErrorOr<string>> PartialUpdate(TotalUpdateDTO update)
+        public async Task<ErrorOr<string>> PartialUpdate(TotalUpdateUserDTO update)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             try

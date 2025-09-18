@@ -4,7 +4,7 @@ using TaskManagerAPI.DTO_s;
 
 namespace TaskManagerAPI.Validators
 {
-    public class TotalUpdateValidator : AbstractValidator<TotalUpdateDTO>
+    public class TotalUpdateValidator : AbstractValidator<TotalUpdateUserDTO>
     {
         public TotalUpdateValidator() 
         {

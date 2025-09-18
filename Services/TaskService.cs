@@ -1,6 +1,7 @@
 ﻿using ErrorOr;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TaskManagerAPI.Data;
@@ -16,11 +17,11 @@ namespace TaskManagerAPI.Services
         public Task<TaskResponse> CreateTask(CreateTask create);
         public Task<TaskResponse> GetTask(Guid MyTaskId);
         public Task<List<TaskResponse>> GetAllTasks();
-        public Task<TaskResponse> UpdateTask(Guid MyTaskId);
-        public Task<ErrorOr<bool>> DeleteTask(Guid MyTaskId);
-        public Task<ErrorOr<List<TaskResponse>>> GetTasksByDueDate(DateOnly dueDate);
-        public Task<ErrorOr<List<TaskResponse>>> GetOverdueTasks();
-        public Task<ErrorOr<List<TaskResponse>>> GetTasksByStatus(TaskStatus status);
+        public Task<TaskResponse> TotalUpdateTask(TotalUpdateTaskDTO newtask, Guid MyTaskId);
+        public Task<bool> DeleteTask(Guid MyTaskId);
+        public Task<List<TaskResponse>> GetTasksByDueDate(DateOnly dueDate);
+        public Task<List<TaskResponse>> GetOverdueTasks();
+        public Task<List<TaskResponse>> GetTasksByStatus(ProgressStatus status);
     }
     // remember to use the py visualizaion library for your tasks
     // add an ml model to predict task completion time based on past data
@@ -85,6 +86,7 @@ namespace TaskManagerAPI.Services
             };
 
             await _context.AddAsync(entity);
+            await _context.SaveChangesAsync();
             _logger.LogInformation("Task {Title} created successfully for {userEmail}", create.Title, userEmail);
 
             return new TaskResponse
@@ -136,6 +138,122 @@ namespace TaskManagerAPI.Services
             {
                 _logger.LogWarning("No tasks found in the database. RequestId: {RequestId}", requestId);
             }
+            return tasks;
+        }
+        public async Task<TaskResponse> TotalUpdateTask(TotalUpdateTaskDTO newtask, Guid TaskId)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            _logger.LogInformation("TotalUpdaeTask called , requestId : {requestId} ", requestId);
+
+            var newentity = await _context.MyTask.FirstOrDefaultAsync(x => x.MyTaskId == TaskId);
+            if (newentity == null)
+            {
+                _logger.LogWarning("Task with ID {TaskId} not found. RequestId: {RequestId}", TaskId, requestId);
+                throw new KeyNotFoundException($"Task with ID {TaskId} was not found , requestId : {requestId}.");
+            }
+
+            newentity.Title = newtask.NewTitle;
+            newentity.Description = newtask.NewDescription;
+            newentity.DueDate = newtask.NewDueDate;
+            newentity.DueTime = newtask.NewDueTime;
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Successfully updated user , requestId : {requestId} ", requestId);
+
+            return new TaskResponse
+            {
+                Title = newtask.NewTitle,
+                DueDate = newtask.NewDueDate
+            };
+        }
+        public async Task<bool> DeleteTask(Guid MyTaskId)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            _logger.LogInformation($"Delete user endpoint called , {requestId} ");
+
+            var task = await _context.MyTask.FindAsync(MyTaskId);
+            if (task == null)
+            {
+                _logger.LogError($"Failed to find task , either the taskid is wrong or the user has been deleted , {requestId}");
+                throw new KeyNotFoundException("Unable to find user in db");
+            }
+            task.IsDeleted = DeletionStatus.True;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation($"User Successfully deleted ,  {requestId}");
+
+            return true;
+        }
+        public async Task<List<TaskResponse>> GetTasksByDueDate(DateOnly DueDate)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            _logger.LogInformation($"GetTaskByDueDate Method called , requestId : {requestId}");
+
+            var tasks = await _context.MyTask
+                 .Where(u => u.DueDate == DueDate)
+                 .Select(u => new TaskResponse
+                 {
+                     Title = u.Title,
+                     DueDate = u.DueDate
+                 })
+                .ToListAsync();
+
+            if (!tasks.Any())
+            {
+                _logger.LogWarning($"No tasks were retrieved , requestId : {requestId}");
+                throw new KeyNotFoundException("No tasks were found");
+            }
+            return tasks;
+        }
+        public async Task<List<TaskResponse>> GetOverdueTasks()
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            _logger.LogInformation("GetOverdueTasks called. requestId: {RequestId}, today: {Today}", requestId, today);
+
+            var tasks = await _context.MyTask
+                .Where(t => t.DueDate < today && t.IsDeleted == DeletionStatus.False)
+                .Select(t => new TaskResponse
+                {
+                    Title = t.Title,
+                    DueDate = t.DueDate
+                })
+                .ToListAsync();
+
+            if (!tasks.Any())
+            {
+                _logger.LogWarning("No overdue tasks found. requestId: {RequestId}", requestId);
+                return new List<TaskResponse>(); 
+            }
+
+            return tasks;
+        }
+        public async Task<List<TaskResponse>> GetTasksByStatus(ProgressStatus status)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            _logger.LogInformation(
+                "GetTasksByStatus called. requestId: {RequestId}, status: {Status}",
+                requestId, status);
+
+            var tasks = await _context.MyTask
+                .Where(t => t.State == status && t.IsDeleted == DeletionStatus.False)
+                .Select(t => new TaskResponse
+                {
+                    Title = t.Title,
+                    DueDate = t.DueDate
+                })
+                .ToListAsync();
+
+            if (!tasks.Any())
+            {
+                _logger.LogWarning(
+                    "No tasks found with status {Status}. requestId: {RequestId}",
+                    status, requestId);
+                return new List<TaskResponse>(); 
+            }
+
+            return tasks;
         }
     }
 }
+

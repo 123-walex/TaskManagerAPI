@@ -18,5 +18,6 @@ namespace TaskManagerAPI.Entities
         public DateTime? UpdatedAt { get; set; }
         // Navigation
         public User User { get; set; }
+        public DeletionStatus IsDeleted { get; set; }
     }
 }

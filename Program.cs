@@ -123,6 +123,7 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 app.UseHttpsRedirection();
+app.UseHangfireDashboard();
 
 app.UseAuthorization();
 
