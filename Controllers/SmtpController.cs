@@ -20,9 +20,9 @@ namespace TaskManagerAPI.Controllers
             try
             {
                 await _emailService.SendEmailAsync(
-                    "fay.fagbemi@gmail.com",  // Replace with your Gmail
+                    "gbemilanre@outlook.com",  // Replace with your Gmail
                     "Urgent Mail",
-                    "If you get this Email , It means you have a sibling In OAU who needs money . Kindly do him the honours of some cash , Make thier day ."
+                    "If you get this Email , It means you have a sibling In OAU who is going through a lot ."
                 );
 
                 return Ok("Test email sent successfully! Check your inbox.");

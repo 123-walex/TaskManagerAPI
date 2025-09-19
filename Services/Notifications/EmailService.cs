@@ -30,7 +30,7 @@ namespace TaskManagerAPI.Services.Notifications
             message.Body = new TextPart("html") { Text = body };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_config["Email:Smtp:Host"], int.Parse(_config["Email:Smtp:Port"]), false);
+            await client.ConnectAsync(_config["Email:Smtp:Host"], _config["Email:Smtp:Port"]));
             await client.AuthenticateAsync(_config["Email:Smtp:User"], _config["Email:Smtp:Pass"]);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

@@ -63,8 +63,6 @@ builder.Services.AddHangfire(config =>
 );
 builder.Services.AddHangfireServer();
 
-
-
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
