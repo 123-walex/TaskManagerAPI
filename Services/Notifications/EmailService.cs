@@ -23,6 +23,7 @@ namespace TaskManagerAPI.Services.Notifications
 
         public async Task SendEmailAsync(string to, string subject, string body)
         {
+            var port = _config.GetValue<int>("Email:Smtp:Port");
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("Task Manager", _config["Email:Smtp:From"]));
             message.To.Add(MailboxAddress.Parse(to));
@@ -30,7 +31,7 @@ namespace TaskManagerAPI.Services.Notifications
             message.Body = new TextPart("html") { Text = body };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_config["Email:Smtp:Host"], _config[ "Email:Smtp:Port"]);
+            await client.ConnectAsync(_config["Email:Smtp:Host"], port, MailKit.Security.SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(_config["Email:Smtp:User"], _config["Email:Smtp:Pass"]);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
