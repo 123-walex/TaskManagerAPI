@@ -83,6 +83,11 @@ namespace TaskManagerAPI.Services
                 throw new UnauthorizedAccessException("User does not exist in the database");
 
             _logger.LogInformation("Create new task called for {userEmail} ", userEmail);
+           
+            var ReminderEntity = new TaskReminders
+            {
+
+            }
 
             var entity = new MyTask
             {

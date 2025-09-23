@@ -27,5 +27,6 @@ namespace TaskManagerAPI.Entities
         public required string GoogleID { get; set; }
         public ICollection<UserSessions> UserSessions { get; set; } = new List<UserSessions>(); 
         public ICollection<RefreshTokens> RefreshTokens { get; set; } = new List<RefreshTokens>();
+        public ICollection<MyTask> Tasks { get; set; } = new List<MyTask>();
     }
 }

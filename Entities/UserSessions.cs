@@ -5,7 +5,7 @@ namespace TaskManagerAPI.Entities
     public class UserSessions
     {
         public int Id { get; set; } 
-        public Guid UserId { get; set; }
+        public Guid UserId { get; set; } // Fk To User
         public User user { get; set; } = null!;
         public DateTime? LoggedInAt { get; set; }
         public DateTime? LoggedOutAt { get; set; }

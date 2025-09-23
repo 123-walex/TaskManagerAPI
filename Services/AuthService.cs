@@ -21,9 +21,10 @@ namespace TaskManagerAPI.Services
         Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic);
         Task<ErrorOr<bool>> LogoutUser(AuthResponse response);
         Task<ErrorOr<List<UserDTO>>> GetAllUsers();
-        Task<ErrorOr<UserDTO>> GetUser(Guid UserId); 
+        Task<ErrorOr<UserDTO>> GetUser(Guid UserId);
         Task<ErrorOr<string>> TotalUpdate(TotalUpdateUserDTO update);
         Task<ErrorOr<string>> PartialUpdate(TotalUpdateUserDTO update);
+
     }
     public class AuthService : IAuthService
     {
@@ -140,7 +141,7 @@ namespace TaskManagerAPI.Services
                 );
             }
         }
-     public async Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic)
+        public async Task<ErrorOr<AuthResponse>> LoginUser_Google(LoginDTO_Google_ automatic)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
@@ -150,85 +151,85 @@ namespace TaskManagerAPI.Services
 
             GoogleJsonWebSignature.Payload Payload = null;
 
-                try
+            try
+            {
+                Payload = await GoogleJsonWebSignature.ValidateAsync(automatic.IDToken,
+                  new GoogleJsonWebSignature.ValidationSettings
+                  {
+                      Audience = new[] { _configuration["Google:ClientId"] } // from Google Cloud console
+                  });
+
+                if (Payload == null)
                 {
-                    Payload = await GoogleJsonWebSignature.ValidateAsync(automatic.IDToken,
-                      new GoogleJsonWebSignature.ValidationSettings
-                      {
-                          Audience = new[] { _configuration["Google:ClientId"] } // from Google Cloud console
-                      });
+                    _logger.LogError("Unable to validate Idtoken !!! , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
+                    return Error.NotFound(
+                        code: "User.NotFound",
+                        description: "Unable to Validate Id token "
+                        );
+                }
+                // Since id token has now been decrypted we have differnt fields
+                var email = Payload.Email;
+                var googleId = Payload.Subject;
+                var pictureurl = Payload.Picture;
+                var username = Payload.Name;
+                var Role = automatic.Role;
 
-                    if (Payload == null)
-                    {
-                        _logger.LogError("Unable to validate Idtoken !!! , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
-                        return Error.NotFound(
-                            code: "User.NotFound",
-                            description: "Unable to Validate Id token "
-                            );
-                    }
-                    // Since id token has now been decrypted we have differnt fields
-                    var email = Payload.Email;
-                    var googleId = Payload.Subject;
-                    var pictureurl = Payload.Picture;
-                    var username = Payload.Name;
-                    var Role = automatic.Role;
+                var loginentity = await _context.User
+                     .Include(u => u.RefreshTokens)
+                     .Include(u => u.UserSessions)
+                     .FirstOrDefaultAsync(u => u.GoogleID == googleId);
 
-                    var loginentity = await _context.User
-                         .Include(u => u.RefreshTokens)
-                         .Include(u => u.UserSessions)
-                         .FirstOrDefaultAsync(u => u.GoogleID == googleId);
-
-                    if (loginentity.IsDeleted == UserStatus.True && loginentity != null)
+                if (loginentity.IsDeleted == UserStatus.True && loginentity != null)
+                {
+                    _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
+                    return Error.NotFound(
+                         code: "User.NotFound",
+                         description: $"User with email {email} was not found on the db."
+                         );
+                }
+                else
+                {
+                    _logger.LogInformation("The user {email} has been found : {requestId}", email, requestId);
+                }
+                if (loginentity == null)
+                {
+                    var user = new User
                     {
-                        _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
-                        return Error.NotFound(
-                             code: "User.NotFound",
-                             description: $"User with email {email} was not found on the db."
-                             );
-                    }
-                    else
-                    {
-                        _logger.LogInformation("The user {email} has been found : {requestId}", email, requestId);
-                    }
-                    if (loginentity == null)
-                    {
-                        var user = new User
-                        {
-                            Email = email,
-                            PictureUrl = pictureurl,
-                            GoogleID = googleId,
-                            Password = "Not required",
-                            CreatedAt = DateTime.UtcNow,
-                            AuthType = UserType.automatic,
-                            IsDeleted = UserStatus.False,
-                            Role = automatic.Role
-                        };
-                        await _context.User.AddAsync(user);
-                        await _context.SaveChangesAsync();
-                        loginentity = user;
-
-                        _logger.LogInformation("New Google user {Email} created. RequestId: {RequestId}", email, requestId);
-                    }
-                    //create new tokens 
-                    accesstoken = _tokenService.CreateAccessToken(loginentity);
-                    refreshtoken = _tokenService.CreateRefreshToken(ipAddress);
-
-                    var session = new UserSessions
-                    {
-                        UserId = loginentity.UserId,
-                        LoggedInAt = DateTime.UtcNow,
-                        AccessSessionToken = accesstoken,
-                        user = loginentity
+                        Email = email,
+                        PictureUrl = pictureurl,
+                        GoogleID = googleId,
+                        Password = "Not required",
+                        CreatedAt = DateTime.UtcNow,
+                        AuthType = UserType.automatic,
+                        IsDeleted = UserStatus.False,
+                        Role = automatic.Role
                     };
-                    loginentity.RefreshTokens.Add(refreshtoken);
-                    loginentity.UserSessions.Add(session);
+                    await _context.User.AddAsync(user);
                     await _context.SaveChangesAsync();
+                    loginentity = user;
+
+                    _logger.LogInformation("New Google user {Email} created. RequestId: {RequestId}", email, requestId);
                 }
-                catch (Exception ex)
+                //create new tokens 
+                accesstoken = _tokenService.CreateAccessToken(loginentity);
+                refreshtoken = _tokenService.CreateRefreshToken(ipAddress);
+
+                var session = new UserSessions
                 {
-                    _logger.LogError(ex, "Error Processing Login , StatusCode : {StatusCode} , requestId {requestId} .", StatusCodes.Status404NotFound, requestId);
-                    return Error.Failure("GoogleAuth.Failed", "Something went wrong during Google authentication.");
-                }
+                    UserId = loginentity.UserId,
+                    LoggedInAt = DateTime.UtcNow,
+                    AccessSessionToken = accesstoken,
+                    user = loginentity
+                };
+                loginentity.RefreshTokens.Add(refreshtoken);
+                loginentity.UserSessions.Add(session);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Processing Login , StatusCode : {StatusCode} , requestId {requestId} .", StatusCodes.Status404NotFound, requestId);
+                return Error.Failure("GoogleAuth.Failed", "Something went wrong during Google authentication.");
+            }
             return new AuthResponse
             {
                 Email = Payload?.Email,
@@ -241,46 +242,46 @@ namespace TaskManagerAPI.Services
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
-            
-                try
+
+            try
+            {
+                var Users = await _context.User
+                    .FirstOrDefaultAsync(u => u.Email == response.Email);
+                var Session = await _context.Session
+                    .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+                var Token = await _context.RefreshTokens
+                    .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+
+                if (Users == null && Users.IsDeleted == UserStatus.True)
                 {
-                    var Users = await _context.User
-                        .FirstOrDefaultAsync(u => u.Email == response.Email);
-                    var Session = await _context.Session
-                        .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
-                    var Token = await _context.RefreshTokens
-                        .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
-
-                    if (Users == null && Users.IsDeleted == UserStatus.True)
-                    {
-                        _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
-                        return Error.NotFound(
-                             code: "User.NotFound",
-                             description: $"User with email {response.Email} was not found on the db."
-                             );
-                    }
-
-                    Session.LoggedOutAt = DateTime.UtcNow;
-                    Session.NoOfSessions += 1;
-                    Token.RevokedAt = DateTime.UtcNow;
-                    Token.ReplacedByToken = null;
-                    Token.RevokedByIp = ipAddress;
-                  
-                    _logger.LogInformation("Successfully revoked Refreshtoken , RequestId : {requestId} ", requestId);
-                    await _context.SaveChangesAsync();
-
-                    _logger.LogInformation(" Successfully Logged User Out , RequestId : {requestId} .",requestId);
-                    return true;
+                    _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
+                    return Error.NotFound(
+                         code: "User.NotFound",
+                         description: $"User with email {response.Email} was not found on the db."
+                         );
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error during Logout , RequesrId : {requestId} ", requestId);
-                    return Error.Failure(
-                           code: "User.NotFound",
-                           description: $"User with email {response.Email} was not found on the db."
-                           );
-                }
+
+                Session.LoggedOutAt = DateTime.UtcNow;
+                Session.NoOfSessions += 1;
+                Token.RevokedAt = DateTime.UtcNow;
+                Token.ReplacedByToken = null;
+                Token.RevokedByIp = ipAddress;
+
+                _logger.LogInformation("Successfully revoked Refreshtoken , RequestId : {requestId} ", requestId);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(" Successfully Logged User Out , RequestId : {requestId} .", requestId);
+                return true;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Logout , RequesrId : {requestId} ", requestId);
+                return Error.Failure(
+                       code: "User.NotFound",
+                       description: $"User with email {response.Email} was not found on the db."
+                       );
+            }
+        }
         public async Task<ErrorOr<List<UserDTO>>> GetAllUsers()
         {
             try
@@ -292,10 +293,10 @@ namespace TaskManagerAPI.Services
                 var users = await _context.User
                     .Where(u => u.IsDeleted == UserStatus.False)
                     .Select(u => new UserDTO
-                        {
-                          UserId = u.UserId,
-                          Email = u.Email,
-                          CreatedAt = u.CreatedAt
+                    {
+                        UserId = u.UserId,
+                        Email = u.Email,
+                        CreatedAt = u.CreatedAt
                     })
                     .ToListAsync();
 
@@ -306,14 +307,14 @@ namespace TaskManagerAPI.Services
                         code: "User.NotFound",
                         description: "No users were found in the system.");
                 }
-               return users;
+                return users;
             }
             catch (Exception ex)
             {
-               _logger.LogError(ex, "An error occurred while retrieving users.");
-               return Error.Failure(
-                  code: "User.Retrieve.Failed",
-                  description: "An unexpected error occurred while retrieving users.");
+                _logger.LogError(ex, "An error occurred while retrieving users.");
+                return Error.Failure(
+                   code: "User.Retrieve.Failed",
+                   description: "An unexpected error occurred while retrieving users.");
             }
         }
         public async Task<ErrorOr<UserDTO>> GetUser(Guid UserId)
@@ -324,7 +325,7 @@ namespace TaskManagerAPI.Services
             {
                 var user = await _context.User.FindAsync(UserId);
 
-                if(user == null || user.IsDeleted == UserStatus.True)
+                if (user == null || user.IsDeleted == UserStatus.True)
                 {
                     _logger.LogError("User is either detleted or null , StatusCode : {StatusCode} , requestId : {requestId} .", StatusCodes.Status404NotFound, requestId);
                     return Error.NotFound(
@@ -338,7 +339,7 @@ namespace TaskManagerAPI.Services
                     CreatedAt = user.CreatedAt
                 };
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving user with ID {UserId}", UserId);
                 return Error.Failure(
@@ -412,7 +413,7 @@ namespace TaskManagerAPI.Services
 
                 return user.Email;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occured while updating the user , requestId : {requestId} .", requestId);
                 return Error.Failure(

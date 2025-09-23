@@ -69,16 +69,16 @@ namespace TaskManagerAPI.Controllers
         {
             var user = await _authService.GetUser(Id);
             return Ok(user);
-        } 
+        }
         // use email to get user id 
         [Authorize(Roles = "Admin , User")]
         [HttpPut("TotalUpdate")]
         public async Task<IActionResult> TotalUpdate(TotalUpdateUserDTO update)
         {
             var requestId = HttpContext.TraceIdentifier;
-           
+
             var user = await _context.User.FirstOrDefaultAsync(u => u.Email == update.OldEmail);
-            if(user == null)
+            if (user == null)
             {
                 _logger.LogError("The User in the db is either null or deleted , RequestId : {requestId} ", requestId);
                 return BadRequest();
@@ -110,7 +110,7 @@ namespace TaskManagerAPI.Controllers
                 _logger.LogInformation("The hashedpassword can be used as pk");
             }
             //using email
-            else if(update.OldEmail != null)
+            else if (update.OldEmail != null)
             {
                 user = await _context.User.FirstOrDefaultAsync(u => u.Email == update.OldEmail);
                 _logger.LogInformation("The email can be used as pk");
@@ -194,5 +194,6 @@ namespace TaskManagerAPI.Controllers
 
             return Ok(new { Message = "User successfully restored." });
         }
+
     }
 }

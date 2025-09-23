@@ -6,7 +6,7 @@ namespace TaskManagerAPI.Entities
     public class MyTask
     {
         public Guid MyTaskId { get; set; } = Guid.NewGuid();
-        public Guid UserId { get; set; }   // Foreign key to User
+        public Guid UserId { get; set; } // Foreign key to User
         public required string Title { get; set; } 
         public string? Description { get; set; }
         public ProgressStatus State { get; set; }
@@ -16,8 +16,9 @@ namespace TaskManagerAPI.Entities
         public DateTime? CompletedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        // Navigation
-        public User User { get; set; }
+        public User User { get; set; } // Navigation
         public DeletionStatus IsDeleted { get; set; }
+        public ICollection<TaskReminders> Reminders { get; set; } = new List<TaskReminders>();
+        public TaskPolicy Policy { get; set; } = TaskPolicy.Low;
     }
 }
