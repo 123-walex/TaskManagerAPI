@@ -13,11 +13,10 @@ namespace TaskManagerAPI.Services
 {
     public interface IJobService
     {
-        Task SendDailyReminders(string Email);
-        Task SendNextReminder(string Email);
+        Task SendDailyReminderList();
         void FireandForgetJob(Expression<Action> methodCall);
         void DelayedJob(Expression<Action> methodCall, TimeSpan delay);
-        void ReccuringJob(string jobId, Expression<Action> methodCall, string cronExpression);
+        void RecurringJob(string jobId, Expression<Action> methodCall, string cronExpression);
         void ContinuousJob(string parentJobId, Expression<Action> methodCall);
     }
 }
@@ -36,8 +35,9 @@ public class JobService : IJobService
         _recurringJobManager = recurringJobManager;
     }
 
-    public async Task SendDailyReminders(string Email)
-    {
+    public async Task SendDailyReminderList()
+    { 
+        //Sends a list of each task a user has for each day , some sort of user digest 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var DueTasks = await _context.MyTask
@@ -57,7 +57,7 @@ public class JobService : IJobService
 
             var tasksForUser = dueTask.ToList();
 
-            // Build one email body for this user
+            // Build one email body for this users list
             var bodyBuilder = new StringBuilder();
             bodyBuilder.AppendLine("<h3>Your tasks due today are :</h3>");
             bodyBuilder.AppendLine("<ul>");
@@ -76,49 +76,8 @@ public class JobService : IJobService
             await _emailService.SendEmailAsync(user.Email, subject, bodyBuilder.ToString());
             return;
         }
-
     }
-    public async Task SendNextReminder(string Email)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var task = await _context.MyTask
-            .Where(x => x.DueDate == today 
-             && x.IsDeleted == DeletionStatus.False
-             && x.ReminderStatus == ReminderStatus.Pending)
-            .GroupBy(x => x.UserId)
-            .ToListAsync();
-
-        if (!task.Any()) 
-            return;
-
-        foreach(var task in tasks)
-        {
-            var userId = task.Key;
-            var user = await _context.User.FindAsync(userId);
-            if (user == null || string.IsNullOrEmpty(user.Email))
-                continue;
-            //create reminder 
-            // Build one email body for this users task
-            var bodyBuilder = new StringBuilder();
-            bodyBuilder.AppendLine($"<h3>Your Task {}  :</h3>");
-            bodyBuilder.AppendLine("<ul>");
-
-            foreach (var task in tasksForUser)
-            {
-                bodyBuilder.AppendLine(
-                    $"<li><b>{task.Title}</b> — {task.DueDate} at {task.DueTime}</li>"
-                );
-            }
-
-            bodyBuilder.AppendLine("</ul>");
-
-            var subject = $"You have {tasksForUser.Count} task(s) due today";
-
-            await _emailService.SendEmailAsync(user.Email, subject, bodyBuilder.ToString());
-            return;
-        }
-    }
     public void FireandForgetJob(Expression<Action> methodCall)
     {
         _backgroundJobClient.Enqueue(methodCall);
@@ -129,7 +88,7 @@ public class JobService : IJobService
         _backgroundJobClient.Schedule(methodCall, delay);
     }
 
-    public void ReccuringJob(string jobId, Expression<Action> methodCall, string cronExpression)
+    public void RecurringJob(string jobId, Expression<Action> methodCall, string cronExpression)
     {
         _recurringJobManager.AddOrUpdate(jobId, methodCall, cronExpression);
     }

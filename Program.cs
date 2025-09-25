@@ -132,6 +132,12 @@ app.UseHangfireDashboard();
 
 app.UseAuthorization();
 
+using (var scope = app.Services.CreateScope())
+{
+    var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
+    reminderService.ScheduleDailyDigest();
+}
+
 app.MapControllers();
 
 app.Run();

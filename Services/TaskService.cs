@@ -15,7 +15,7 @@ namespace TaskManagerAPI.Services
 {
     public interface ITaskService
     {
-        public Task<TaskResponse> CreateTask(CreateTask create);
+        public Task<TaskResponse> CreateTask(CreateTask create , TaskPolicy policy);
         public Task<TaskResponse> GetTask(Guid MyTaskId);
         public Task<List<TaskResponse>> GetAllTasks();
         public Task<TaskResponse> TotalUpdateTask(TotalUpdateTaskDTO newtask, Guid MyTaskId);
@@ -66,7 +66,7 @@ namespace TaskManagerAPI.Services
         {
             return CurrentUser?.FindFirstValue(ClaimTypes.NameIdentifier);
         }
-        public async Task<TaskResponse> CreateTask(CreateTask create)
+        public async Task<TaskResponse> CreateTask(CreateTask create , TaskPolicy policy)
         {
             Guid UserId;
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
@@ -83,11 +83,6 @@ namespace TaskManagerAPI.Services
                 throw new UnauthorizedAccessException("User does not exist in the database");
 
             _logger.LogInformation("Create new task called for {userEmail} ", userEmail);
-           
-            var ReminderEntity = new TaskReminders
-            {
-
-            }
 
             var entity = new MyTask
             {
@@ -97,14 +92,24 @@ namespace TaskManagerAPI.Services
                 DueTime = create.Duetime,
                 CreatedAt = DateTime.UtcNow,
                 State = ProgressStatus.Pending,
-                UserId = userId 
+                UserId = userId,
+                Policy = policy
             };
 
             await _context.AddAsync(entity);
             await _context.SaveChangesAsync();
-            var combined = DateTime.SpecifyKind(create.DueDate.ToDateTime(create.Duetime), DateTimeKind.Utc);
 
-            await _reminderservice.ScheduleTaskReminder(entity.MyTaskId, userEmail, combined);
+            var ReminderEntity = new TaskReminders
+            {
+                TaskId = entity.MyTaskId,
+                TaskName = entity.Title,
+                DueDate = entity.DueDate,
+                DueTime = entity.DueTime,
+                Policy = policy
+            };
+            await _context.TaskReminders.AddAsync(ReminderEntity);
+            await _context.SaveChangesAsync();
+            await _reminderservice.ScheduleTaskReminder(entity.MyTaskId, userEmail, create.DueDate , create.Duetime , policy);
            
             _logger.LogInformation("Task {Title} created successfully for {userEmail}", create.Title, userEmail);
 

@@ -28,5 +28,6 @@ namespace TaskManagerAPI.Entities
         public ICollection<UserSessions> UserSessions { get; set; } = new List<UserSessions>(); 
         public ICollection<RefreshTokens> RefreshTokens { get; set; } = new List<RefreshTokens>();
         public ICollection<MyTask> Tasks { get; set; } = new List<MyTask>();
+        public ICollection<TaskReminders> Reminders { get; set; } = new List<TaskReminders>();
     }
 }
