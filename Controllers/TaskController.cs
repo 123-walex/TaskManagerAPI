@@ -31,9 +31,9 @@ namespace TaskManagerAPI.Controllers
 
         [Authorize( Roles = "Admin , User")]
         [HttpPost("CreateTask")]
-        public async Task<IActionResult> CreateTask(CreateTask create)
+        public async Task<IActionResult> CreateTask(CreateTask create , TaskPolicy policy)
         {
-            var result = await _taskservice.CreateTask(create);
+            var result = await _taskservice.CreateTask(create , policy);
 
            return Ok(result);
         }

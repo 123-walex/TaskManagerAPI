@@ -59,7 +59,7 @@ namespace TaskManagerAPI.Services
             _logger.LogInformation("Create new user called : {RequestId}", requestId);
 
             string accessToken = String.Empty;
-            RefreshTokens refreshedToken = null;
+            RefreshTokens refreshedToken = null!;
 
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
@@ -107,7 +107,7 @@ namespace TaskManagerAPI.Services
                 }
                 // Generate tokens
                 accessToken = _tokenService.CreateAccessToken(loginEntity);
-                refreshedToken = _tokenService.CreateRefreshToken(ipAddress);
+                refreshedToken = _tokenService.CreateRefreshToken(ipAddress!);
 
                 var session = new UserSessions
                 {
@@ -147,9 +147,9 @@ namespace TaskManagerAPI.Services
             var ipAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
             string accesstoken = string.Empty;
-            RefreshTokens refreshtoken = null;
+            RefreshTokens refreshtoken = null!;
 
-            GoogleJsonWebSignature.Payload Payload = null;
+            GoogleJsonWebSignature.Payload Payload = null!;
 
             try
             {
@@ -179,7 +179,7 @@ namespace TaskManagerAPI.Services
                      .Include(u => u.UserSessions)
                      .FirstOrDefaultAsync(u => u.GoogleID == googleId);
 
-                if (loginentity.IsDeleted == UserStatus.True && loginentity != null)
+                if (loginentity!.IsDeleted == UserStatus.True && loginentity != null)
                 {
                     _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
                     return Error.NotFound(
@@ -212,7 +212,7 @@ namespace TaskManagerAPI.Services
                 }
                 //create new tokens 
                 accesstoken = _tokenService.CreateAccessToken(loginentity);
-                refreshtoken = _tokenService.CreateRefreshToken(ipAddress);
+                refreshtoken = _tokenService.CreateRefreshToken(ipAddress!);
 
                 var session = new UserSessions
                 {
@@ -248,11 +248,11 @@ namespace TaskManagerAPI.Services
                 var Users = await _context.User
                     .FirstOrDefaultAsync(u => u.Email == response.Email);
                 var Session = await _context.Session
-                    .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+                    .FirstOrDefaultAsync(u => u.UserId == Users!.UserId);
                 var Token = await _context.RefreshTokens
-                    .FirstOrDefaultAsync(u => u.UserId == Users.UserId);
+                    .FirstOrDefaultAsync(u => u.UserId == Users!.UserId);
 
-                if (Users == null && Users.IsDeleted == UserStatus.True)
+                if (Users == null && Users!.IsDeleted == UserStatus.True)
                 {
                     _logger.LogError("The user has been deleted or doesn't exist , Status Code {StatusCode} : {requestId}", StatusCodes.Status404NotFound, requestId);
                     return Error.NotFound(
@@ -261,9 +261,9 @@ namespace TaskManagerAPI.Services
                          );
                 }
 
-                Session.LoggedOutAt = DateTime.UtcNow;
+                Session!.LoggedOutAt = DateTime.UtcNow;
                 Session.NoOfSessions += 1;
-                Token.RevokedAt = DateTime.UtcNow;
+                Token!.RevokedAt = DateTime.UtcNow;
                 Token.ReplacedByToken = null;
                 Token.RevokedByIp = ipAddress;
 

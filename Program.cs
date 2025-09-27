@@ -27,6 +27,8 @@ using TaskManagerAPI.Entities;
 using TaskManagerAPI.Services;
 using TaskManagerAPI.Services.Notifications;
 using TaskManagerAPI.Validators;
+using StackExchange.Redis;
+using TaskManagerAPI.Services.Idempotency;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,13 +95,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
        }).AddCookie()
        .AddGoogle(GoogleDefaults.AuthenticationScheme, options =>
        {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
         options.CallbackPath = "/signin-google";
        });
 
 builder.Services.AddOpenApi();
 builder.Services.AddAuthorization();
+// Connection Multiplexer is the standard way to access redis , weirdly redis has its own default port 6379 , it is not the one on your api 
+builder.Services.AddSingleton<IConnectionMultiplexer>
+          (sp => ConnectionMultiplexer.Connect("LocalHost:6379"));
+builder.Services.AddSingleton< IIdempotencyStore , RedisIdempotencyStore>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<ItokenService, TokenService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
@@ -128,8 +134,8 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 app.UseHttpsRedirection();
+app.UseMiddleware<IdempotencyMiddleware>();
 app.UseHangfireDashboard();
-
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())

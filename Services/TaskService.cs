@@ -68,7 +68,7 @@ namespace TaskManagerAPI.Services
         }
         public async Task<TaskResponse> CreateTask(CreateTask create , TaskPolicy policy)
         {
-            Guid UserId;
+          
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             var userEmail = GetUserEmail();
 
@@ -86,6 +86,7 @@ namespace TaskManagerAPI.Services
 
             var entity = new MyTask
             {
+                User = user,
                 Title = create.Title,
                 Description = create.Description,
                 DueDate = create.DueDate,
@@ -102,7 +103,7 @@ namespace TaskManagerAPI.Services
             var ReminderEntity = new TaskReminders
             {
                 TaskId = entity.MyTaskId,
-                TaskName = entity.Title,
+                TaskName = entity,
                 DueDate = entity.DueDate,
                 DueTime = entity.DueTime,
                 Policy = policy
@@ -141,7 +142,7 @@ namespace TaskManagerAPI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred in retrieving the task .");
-                return null;
+                return null!;
             }
         }
         public async Task<List<TaskResponse>> GetAllTasks()

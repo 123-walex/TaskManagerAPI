@@ -16,7 +16,7 @@ namespace TaskManagerAPI.Entities
         public DateTime? CompletedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public User User { get; set; } // Navigation
+        public required User User { get; set; } // Navigation
         public DeletionStatus IsDeleted { get; set; }
         public ICollection<TaskReminders> Reminders { get; set; } = new List<TaskReminders>();
         public TaskPolicy Policy { get; set; } = TaskPolicy.Low;
