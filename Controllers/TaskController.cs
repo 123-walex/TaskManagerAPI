@@ -38,6 +38,13 @@ namespace TaskManagerAPI.Controllers
            return Ok(result);
         }
         [Authorize(Roles = "Admin , User")]
+        [HttpPost("Complete-Task/{TaskId}")]
+        public async Task CompleteTask(Guid TaskId)
+        {
+           await _taskservice.CompleteTask(TaskId);
+           return Ok();
+        }
+        [Authorize(Roles = "Admin , User")]
         [HttpGet("GetTaskById/{TaskId}")]
         public async Task<IActionResult> GetTaskById(Guid TaskId)
         {

@@ -1,7 +1,9 @@
 ﻿using ErrorOr;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
+using System.Runtime.InteropServices.JavaScript;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TaskManagerAPI.Data;
@@ -16,6 +18,7 @@ namespace TaskManagerAPI.Services
     public interface ITaskService
     {
         public Task<TaskResponse> CreateTask(CreateTask create , TaskPolicy policy);
+        public Task CompleteTask(Guid TaskId);
         public Task<TaskResponse> GetTask(Guid MyTaskId);
         public Task<List<TaskResponse>> GetAllTasks();
         public Task<TaskResponse> TotalUpdateTask(TotalUpdateTaskDTO newtask, Guid MyTaskId);
@@ -120,6 +123,40 @@ namespace TaskManagerAPI.Services
                 DueDate = create.DueDate
             };
         }
+        public async Task CompleteTask(Guid TaskId)
+        {
+            var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
+            _logger.LogInformation($"Complete Task Endpoint called , requestId : {requestId}");
+
+            if (TaskId == null)
+                throw new UnauthorizedAccessException("Task Id not found!!!");
+
+            try
+            {
+                var entity = await _context.MyTask.FindAsync(TaskId);
+                if (entity == null || entity.IsDeleted == DeletionStatus.True)
+                    throw new NullReferenceException("Entity is either null or deleted!!!");
+
+                _logger.LogInformation("Task Found");
+
+                entity.CompletedAt = DateTime.UtcNow;
+                entity.State = ProgressStatus.Completed;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Succesfully completed the task , requestId : {requestId} .");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred when completing the task. ");
+            }
+        }
+
+        private Exception NotFound()
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<TaskResponse> GetTask(Guid MyTaskId)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;

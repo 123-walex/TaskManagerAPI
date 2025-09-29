@@ -14,7 +14,7 @@ namespace TaskManagerAPI.Services.Notifications
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
 
-        public EmailService(TaskManagerDbContext context , IConfiguration config , ILogger<EmailService> logger)
+        public EmailService(TaskManagerDbContext context, IConfiguration config, ILogger<EmailService> logger)
         {
             _context = context;
             _config = config;

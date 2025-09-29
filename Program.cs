@@ -31,7 +31,7 @@ using StackExchange.Redis;
 using TaskManagerAPI.Services.Idempotency;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// fix sesseion table , make sure the access tokens and refreshtokens are in the same table
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .Enrich.WithProperty("EnvironmentName", builder.Environment.EnvironmentName)
