@@ -30,6 +30,7 @@ using TaskManagerAPI.Services.Notifications;
 using TaskManagerAPI.Validators;
 using StackExchange.Redis;
 using TaskManagerAPI.Services.Idempotency;
+using TaskManagerAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 // fix sesseion table , make sure the access tokens and refreshtokens are in the same table
@@ -158,7 +159,9 @@ app.UseSerilogRequestLogging(opts =>
 });
 app.UseHttpsRedirection();
 app.UseMiddleware<IdempotencyMiddleware>();
+
 app.UseHangfireDashboard();
+
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
