@@ -18,7 +18,7 @@ namespace TaskManagerAPI.Services
     public interface ITaskService
     {
         public Task<TaskResponse> CreateTask(CreateTask create , TaskPolicy policy);
-        public Task CompleteTask(Guid TaskId);
+        public Task<CompleteTaskDTO> CompleteTask(Guid TaskId);
         public Task<TaskResponse> GetTask(Guid MyTaskId);
         public Task<List<TaskResponse>> GetAllTasks();
         public Task<TaskResponse> TotalUpdateTask(TotalUpdateTaskDTO newtask, Guid MyTaskId);
@@ -123,40 +123,36 @@ namespace TaskManagerAPI.Services
                 DueDate = create.DueDate
             };
         }
-        public async Task CompleteTask(Guid TaskId)
+        public async Task<CompleteTaskDTO> CompleteTask(Guid TaskId)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;
             _logger.LogInformation($"Complete Task Endpoint called , requestId : {requestId}");
 
-            if (TaskId == null)
+            if (TaskId == Guid.Empty)
                 throw new UnauthorizedAccessException("Task Id not found!!!");
-
-            try
-            {
-                var entity = await _context.MyTask.FindAsync(TaskId);
+            
+               string Title;
+         
+               var entity = await _context.MyTask.FindAsync(TaskId);
                 if (entity == null || entity.IsDeleted == DeletionStatus.True)
                     throw new NullReferenceException("Entity is either null or deleted!!!");
 
                 _logger.LogInformation("Task Found");
 
+                Title = entity.Title;
                 entity.CompletedAt = DateTime.UtcNow;
                 entity.State = ProgressStatus.Completed;
-
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"Succesfully completed the task , requestId : {requestId} .");
-            }
-            catch(Exception ex)
+   
+            return new CompleteTaskDTO
             {
-                _logger.LogError(ex, "An error occurred when completing the task. ");
-            }
+                CompletedAt = DateTime.UtcNow,
+                TaskId  = TaskId ,
+                TaskName = Title
+            };
         }
-
-        private Exception NotFound()
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<TaskResponse> GetTask(Guid MyTaskId)
         {
             var requestId = _httpContextAccessor.HttpContext?.TraceIdentifier;

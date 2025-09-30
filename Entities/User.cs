@@ -19,7 +19,7 @@ namespace TaskManagerAPI.Entities
         public DateTime? RestoredAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public RBAC Role { get; set; }
-
+        public int NoOfCompletedTasks { get; set; } 
         [Required]
         [MaxLength(256)]
         public required string Password { get; set; }

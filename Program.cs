@@ -2,6 +2,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.SqlServer;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -49,20 +50,36 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-builder.Services.AddDbContext<TaskManagerDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-       //the nextline is to split long queries so efcore can run with sql faster 
-       b => b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-    )
-);
-builder.Services.AddHangfire(config =>
-    config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
-        new SqlServerStorageOptions
+if(builder.Environment.IsDevelopment())
+{
+    // Local SQLSERVER DB
+    builder.Services.AddDbContext<TaskManagerDbContext>(options =>
+        options.UseSqlServer(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+           //the nextline is to split long queries so efcore can run with sql faster 
+           b => b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+        )
+    );
+
+    // Hangfire SQL Server DB
+    builder.Services.AddHangfire(config =>
+        config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"))
+        );
+}
+else
+{
+    // Cloud PostgreSQL DB
+    builder.Services.AddDbContext<TaskManagerDbContext>(options =>
+        options.UseNpgsql(builder.Configuration.GetConnectionString("CloudConnection"))
+    );
+    // Hangfire PostgreSQL DB
+    builder.Services.AddHangfire(config =>
+        config.UsePostgreSqlStorage(options =>
         {
-            SchemaName = "Hangfire" // optional schema
-        })
-);
+            options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("HangFireConnection"));
+        }));
+}
+
 builder.Services.AddHangfireServer();
 
 builder.Services.AddControllers();
@@ -71,6 +88,12 @@ builder.Services.AddFluentValidationClientsideAdapters();
 
 // Automatically register all validators in the assembly
 builder.Services.AddValidatorsFromAssemblyContaining<ManualLoginValidator>();
+
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -128,7 +151,7 @@ app.UseSerilogRequestLogging(opts =>
     opts.EnrichDiagnosticContext = (diagCtx, httpCtx) =>
     {
         diagCtx.Set("TraceId", httpCtx.TraceIdentifier);
-        diagCtx.Set("RequestHost", httpCtx.Request.Host.Value);
+        diagCtx.Set("RequestHost", httpCtx.Request.Host.Value!);
         diagCtx.Set("RequestPath", httpCtx.Request.Path);
         diagCtx.Set("StatusCode", httpCtx.Response.StatusCode);
     };

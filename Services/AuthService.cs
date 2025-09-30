@@ -6,6 +6,7 @@ using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Any;
 using Serilog;
 using TaskManagerAPI.Data;
 using TaskManagerAPI.DTO_s;
@@ -34,6 +35,7 @@ namespace TaskManagerAPI.Services
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly ItokenService _tokenService;
         private readonly IConfiguration _configuration;
+        private readonly ITaskService _taskservice;
 
         public AuthService
             (
@@ -42,9 +44,9 @@ namespace TaskManagerAPI.Services
             TaskManagerDbContext context,
             PasswordHasher<User> passwordHasher,
             ItokenService tokenService,
-            IConfiguration configuration
+            IConfiguration configuration ,
+            TaskService taskservice
             )
-
         {
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
@@ -52,6 +54,7 @@ namespace TaskManagerAPI.Services
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
             _configuration = configuration;
+            _taskservice = taskservice;
         }
         public async Task<ErrorOr<AuthResponse>> LoginUser_Manual(LoginDTO_Manual_ manual)
         {
@@ -232,7 +235,7 @@ namespace TaskManagerAPI.Services
             }
             return new AuthResponse
             {
-                Email = Payload?.Email,
+                Email = Payload?.Email!,
                 AccessToken = accesstoken,
                 RefreshToken = refreshtoken.RefreshToken,
                 Role = automatic.Role
@@ -267,6 +270,16 @@ namespace TaskManagerAPI.Services
                 Token.ReplacedByToken = null;
                 Token.RevokedByIp = ipAddress;
 
+                // Update the users completed tasks 
+                var status = ProgressStatus.Completed;
+                var number = await _taskservice.GetTasksByStatus(status);
+                if (!number.Any())
+                {
+                    _logger.LogInformation($"The User doenst have any completed tasks , RequestId : {requestId}");
+                    return false;
+                }
+                Users.NoOfCompletedTasks = number.Count;
+
                 _logger.LogInformation("Successfully revoked Refreshtoken , RequestId : {requestId} ", requestId);
                 await _context.SaveChangesAsync();
 
@@ -279,7 +292,7 @@ namespace TaskManagerAPI.Services
                 return Error.Failure(
                        code: "User.NotFound",
                        description: $"User with email {response.Email} was not found on the db."
-                       );
+                );
             }
         }
         public async Task<ErrorOr<List<UserDTO>>> GetAllUsers()

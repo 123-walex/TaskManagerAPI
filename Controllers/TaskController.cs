@@ -39,10 +39,14 @@ namespace TaskManagerAPI.Controllers
         }
         [Authorize(Roles = "Admin , User")]
         [HttpPost("Complete-Task/{TaskId}")]
-        public async Task CompleteTask(Guid TaskId)
+        public async Task<IActionResult> CompleteTask(Guid TaskId)
         {
-           await _taskservice.CompleteTask(TaskId);
-           return Ok();
+           var result = await _taskservice.CompleteTask(TaskId);
+           return Ok(new
+            {
+                message = "Task completed successfully.",
+                task = result
+            });
         }
         [Authorize(Roles = "Admin , User")]
         [HttpGet("GetTaskById/{TaskId}")]
@@ -112,10 +116,15 @@ namespace TaskManagerAPI.Controllers
         {
             var result = await _taskservice.GetTasksByStatus(status);
 
-            if (result == null)
-                return NotFound();
+            if (result == null || !result.Any())
+                return NotFound(new { message = $"No tasks found with status {status}" });
 
-            return Ok(result);
+            var count = result.Count;
+
+            return Ok( new {
+                  count,
+                  tasks = result
+                });
         }
     }
 }
